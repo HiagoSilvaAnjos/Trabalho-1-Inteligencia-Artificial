@@ -1,0 +1,144 @@
+{
+  "name": "Hill Climbing - 8 Rainhas (Pipeline Completo)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0001-4e5f-8a9b-000000000001",
+      "name": "Iniciar Experimento",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "python \"C:/Users/Hialagol/Documents/Meus-Projetos/Trabalho-1-Inteligencia-Artificial/codigo/hill_climbing.py\" --num_execucoes 30 --max_iter 200 --variante restart"
+      },
+      "id": "a1b2c3d4-0002-4e5f-8a9b-000000000002",
+      "name": "Rodar Hill Climbing",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $input.first().json.stdout.trim();\nif (!stdout) throw new Error('Saida vazia do Python. Verifique se o python está no PATH do sistema.');\n\nlet results;\ntry {\n  results = JSON.parse(stdout);\n} catch (e) {\n  throw new Error('Falha ao parsear JSON: ' + stdout.substring(0, 300));\n}\n\nconst items = Array.isArray(results) ? results : [results];\nreturn items.map(item => ({ json: item }));"
+      },
+      "id": "a1b2c3d4-0003-4e5f-8a9b-000000000003",
+      "name": "Parsear JSON do Python",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BASE = 'C:/Users/Hialagol/Documents/Meus-Projetos/Trabalho-1-Inteligencia-Artificial';\n\nconst items = $input.all();\nconst data = items.map(i => i.json);\n\nconst headers = ['id_execucao', 'iterações', 'tempo_ms', 'h_final', 'sucesso', 'reinicios', 'platô', 'ótimo_local', 'estado_inicial', 'estado_final'];\n\nconst csvLines = [headers.join(',')];\nfor (const row of data) {\n  const line = headers.map(h => {\n    const val = row[h];\n    if (Array.isArray(val)) return '\"[' + val.join(';') + ']\"';\n    if (typeof val === 'string') return '\"' + val.replace(/\"/g, '\"\"') + '\"';\n    return String(val !== undefined ? val : '');\n  }).join(',');\n  csvLines.push(line);\n}\n\nconst fs = require('fs');\nconst csvPath = BASE + '/resultados/execucoes.csv';\nfs.mkdirSync(BASE + '/resultados', { recursive: true });\nfs.writeFileSync(csvPath, csvLines.join('\\n'), 'utf8');\n\nreturn [{ json: { execucoes: data, total: data.length, csv_path: csvPath } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "a1b2c3d4-0004-4e5f-8a9b-000000000004",
+      "name": "Salvar CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=SUA_CHAVE_API_AQUI",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Você é um analista especialista em algoritmos de IA. Analise os dados de 30 execuções do Hill Climbing para o Problema das 8-Rainhas e retorne SOMENTE um JSON válido (sem markdown, sem texto extra) com as seguintes chaves:\\n\\nMÉTRICAS OBRIGATÓRIAS:\\n- media_iteracoes (número)\\n- desvio_padrao_iteracoes (número)\\n- media_tempo_ms (número)\\n- desvio_padrao_tempo_ms (número)\\n- taxa_sucesso_pct (percentual 0-100)\\n- taxa_falha_pct (percentual 0-100)\\n- media_h_final (número)\\n\\nMÉTRICAS EXTRAS:\\n- max_iteracoes (inteiro)\\n- min_iteracoes (inteiro)\\n- total_execucoes (inteiro)\\n- media_reinicios (número)\\n- quantidade_platos (inteiro)\\n\\nCATEGORIZAÇÃO (array \\\"categorizacao\\\" com 30 objetos, um por execução):\\n- id_execucao (inteiro)\\n- categoria: 'Sucesso Rápido' se sucesso=true e iterações < média, 'Sucesso Lento' se sucesso=true e iterações >= média, 'Falha por Ótimo Local' se sucesso=false e ótimo_local=true, 'Falha por Platô' se sucesso=false e platô=true, 'Falha por Limite' caso contrário\\n- destaque: observação relevante sobre aquela execução\\n\\nDados das execuções (JSON):\\n\" + JSON.stringify({{ $json.execucoes }})\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"responseMimeType\": \"application/json\",\n    \"temperature\": 0.1\n  }\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "a1b2c3d4-0005-4e5f-8a9b-000000000005",
+      "name": "Análise Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BASE = 'C:/Users/Hialagol/Documents/Meus-Projetos/Trabalho-1-Inteligencia-Artificial';\n\nconst response = $input.first().json;\n\nlet metricas;\ntry {\n  const text = response.candidates[0].content.parts[0].text;\n  metricas = typeof text === 'string' ? JSON.parse(text) : text;\n} catch(e) {\n  throw new Error('Falha ao parsear resposta do Gemini: ' + JSON.stringify(response).substring(0, 300));\n}\n\nconst fs = require('fs');\nfs.writeFileSync(BASE + '/resultados/metricas_gemini.json', JSON.stringify(metricas, null, 2), 'utf8');\n\nreturn [{ json: metricas }];"
+      },
+      "id": "a1b2c3d4-0006-4e5f-8a9b-000000000006",
+      "name": "Parsear Métricas Gemini",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BASE = 'C:/Users/Hialagol/Documents/Meus-Projetos/Trabalho-1-Inteligencia-Artificial';\nconst BASE_WIN = BASE.replace(/\\//g, '/');\n\nconst m = $input.first().json;\nconst catJson = JSON.stringify(m.categorizacao || []);\n\nconst metricas = {\n  media_iteracoes:         m.media_iteracoes,\n  desvio_padrao_iteracoes: m.desvio_padrao_iteracoes,\n  media_tempo_ms:          m.media_tempo_ms,\n  desvio_padrao_tempo_ms:  m.desvio_padrao_tempo_ms,\n  taxa_sucesso_pct:        m.taxa_sucesso_pct,\n  taxa_falha_pct:          m.taxa_falha_pct,\n  media_h_final:           m.media_h_final,\n  max_iteracoes:           m.max_iteracoes,\n  min_iteracoes:           m.min_iteracoes,\n  total_execucoes:         m.total_execucoes,\n  media_reinicios:         m.media_reinicios,\n  quantidade_platos:       m.quantidade_platos\n};\n\nconst script = `import pandas as pd\nimport matplotlib.pyplot as plt\nimport json, os\n\nOUT_DIR = r'${BASE}/resultados'\nMETRICAS = ${JSON.stringify(metricas)}\nCATEGORIZACAO = ${catJson}\n\nos.makedirs(OUT_DIR, exist_ok=True)\nplt.style.use('dark_background')\nBG      = '#12121E'\nVERDE   = '#00C896'\nVERMELHO= '#FF4C6A'\nAZUL    = '#7B9EFF'\nROXO    = '#A78BFA'\nLARANJA = '#FFB347'\nTEXTO   = '#E8E8F0'\nGRID    = '#2A2A3A'\n\ndef estilo(ax, title, xlabel, ylabel):\n    ax.set_facecolor(BG)\n    ax.set_title(title, color=TEXTO, fontsize=14, fontweight='bold', pad=12)\n    ax.set_xlabel(xlabel, color=TEXTO, fontsize=11)\n    ax.set_ylabel(ylabel, color=TEXTO, fontsize=11)\n    ax.tick_params(colors=TEXTO)\n    for sp in ['bottom','left']: ax.spines[sp].set_color(GRID)\n    for sp in ['top','right']: ax.spines[sp].set_visible(False)\n    ax.grid(True, color=GRID, linestyle='--', alpha=0.5)\n\ndf = pd.read_csv(OUT_DIR + '/execucoes.csv')\ndf.columns = df.columns.str.strip()\niter_col    = [c for c in df.columns if 'iter' in c.lower()][0]\ntempo_col   = [c for c in df.columns if 'tempo' in c.lower()][0]\nsucesso_col = [c for c in df.columns if 'sucesso' in c.lower()][0]\nid_col      = [c for c in df.columns if 'id_exec' in c.lower()][0]\ndf[iter_col]  = pd.to_numeric(df[iter_col],  errors='coerce').fillna(0).astype(int)\ndf[tempo_col] = pd.to_numeric(df[tempo_col], errors='coerce').fillna(0.0)\nif df[sucesso_col].dtype == object:\n    df[sucesso_col] = df[sucesso_col].map({'True': True, 'False': False})\nsucessos = int(df[sucesso_col].sum())\nfalhas   = len(df) - sucessos\n\n# Grafico 1 - Barras\nfig, ax = plt.subplots(figsize=(7,5))\nfig.patch.set_facecolor(BG)\nbars = ax.bar(['Sucesso', 'Falha'], [sucessos, falhas], color=[VERDE, VERMELHO], width=0.5, zorder=3)\nfor bar, val in zip(bars, [sucessos, falhas]):\n    ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+0.3, str(val), ha='center', va='bottom', color=TEXTO, fontweight='bold', fontsize=13)\nestilo(ax, f'Sucesso vs Falha — Taxa: {METRICAS[\"taxa_sucesso_pct\"]}%', 'Resultado', 'Quantidade')\nax.set_ylim(0, max(sucessos, falhas)+4)\nplt.tight_layout()\nplt.savefig(OUT_DIR+'/grafico1_sucesso_falha.png', dpi=150, facecolor=BG)\nplt.close()\nprint('[OK] grafico1_sucesso_falha.png')\n\n# Grafico 2 - Linha\nfig, ax = plt.subplots(figsize=(11,5))\nfig.patch.set_facecolor(BG)\nax.plot(df[id_col], df[iter_col], color=AZUL, linewidth=2, marker='o', markersize=5, zorder=3)\nax.axhline(METRICAS['media_iteracoes'], color=VERDE, linestyle='--', linewidth=1.5, label=f\"Media: {METRICAS['media_iteracoes']:.1f}\")\nax.legend(facecolor=BG, edgecolor=GRID, labelcolor=TEXTO)\nestilo(ax, 'Iteracoes por Execucao', 'ID da Execucao', 'Iteracoes')\nplt.tight_layout()\nplt.savefig(OUT_DIR+'/grafico2_iteracoes_linha.png', dpi=150, facecolor=BG)\nplt.close()\nprint('[OK] grafico2_iteracoes_linha.png')\n\n# Grafico 3 - Histograma\nfig, ax = plt.subplots(figsize=(8,5))\nfig.patch.set_facecolor(BG)\nax.hist(df[tempo_col], bins=10, color=ROXO, edgecolor=BG, linewidth=0.8, zorder=3)\nax.axvline(METRICAS['media_tempo_ms'], color=VERDE, linestyle='--', linewidth=2, label=f\"Media: {METRICAS['media_tempo_ms']:.2f} ms\")\nax.legend(facecolor=BG, edgecolor=GRID, labelcolor=TEXTO)\nestilo(ax, 'Distribuicao do Tempo de Execucao', 'Tempo (ms)', 'Frequencia')\nplt.tight_layout()\nplt.savefig(OUT_DIR+'/grafico3_histograma_tempo.png', dpi=150, facecolor=BG)\nplt.close()\nprint('[OK] grafico3_histograma_tempo.png')\n\n# Grafico 4 - Boxplot\nfig, ax = plt.subplots(figsize=(6,6))\nfig.patch.set_facecolor(BG)\nax.boxplot(df[iter_col], patch_artist=True,\n    medianprops=dict(color=VERDE, linewidth=2.5),\n    boxprops=dict(facecolor=LARANJA, color=LARANJA, alpha=0.7),\n    whiskerprops=dict(color=TEXTO), capprops=dict(color=TEXTO),\n    flierprops=dict(marker='o', markerfacecolor=VERMELHO, markersize=7, linestyle='none'))\nestilo(ax, f'Boxplot das Iteracoes (DP={METRICAS[\"desvio_padrao_iteracoes\"]:.1f})', 'Hill Climbing', 'Iteracoes')\nax.set_xticklabels(['30 Execucoes'])\nplt.tight_layout()\nplt.savefig(OUT_DIR+'/grafico4_boxplot_iteracoes.png', dpi=150, facecolor=BG)\nplt.close()\nprint('[OK] grafico4_boxplot_iteracoes.png')\n\nprint('[CONCLUIDO] 4 graficos salvos em', OUT_DIR)\n`;\n\nconst fs = require('fs');\nfs.writeFileSync(BASE + '/resultados/gerar_graficos.py', script, 'utf8');\n\nreturn [{ json: { script_salvo: BASE + '/resultados/gerar_graficos.py' } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "a1b2c3d4-0007-4e5f-8a9b-000000000007",
+      "name": "Gerar Script de Gráficos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 300]
+    },
+    {
+      "parameters": {
+        "command": "pip install matplotlib pandas -q && python \"C:/Users/Hialagol/Documents/Meus-Projetos/Trabalho-1-Inteligencia-Artificial/resultados/gerar_graficos.py\""
+      },
+      "id": "a1b2c3d4-0008-4e5f-8a9b-000000000008",
+      "name": "Gerar Gráficos",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1920, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.stdout || '';\nconst success = output.includes('CONCLUIDO');\n\nreturn [{\n  json: {\n    pipeline_status: success ? 'SUCESSO - Pipeline completo!' : 'VERIFIQUE O LOG (stdout abaixo)',\n    arquivos_gerados: [\n      'resultados/execucoes.csv',\n      'resultados/metricas_gemini.json',\n      'resultados/gerar_graficos.py',\n      'resultados/grafico1_sucesso_falha.png',\n      'resultados/grafico2_iteracoes_linha.png',\n      'resultados/grafico3_histograma_tempo.png',\n      'resultados/grafico4_boxplot_iteracoes.png'\n    ],\n    log_graficos: output.trim()\n  }\n}];"
+      },
+      "id": "a1b2c3d4-0009-4e5f-8a9b-000000000009",
+      "name": "Resultado Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 300]
+    }
+  ],
+  "connections": {
+    "Iniciar Experimento": {
+      "main": [[{ "node": "Rodar Hill Climbing", "type": "main", "index": 0 }]]
+    },
+    "Rodar Hill Climbing": {
+      "main": [[{ "node": "Parsear JSON do Python", "type": "main", "index": 0 }]]
+    },
+    "Parsear JSON do Python": {
+      "main": [[{ "node": "Salvar CSV", "type": "main", "index": 0 }]]
+    },
+    "Salvar CSV": {
+      "main": [[{ "node": "Análise Gemini", "type": "main", "index": 0 }]]
+    },
+    "Análise Gemini": {
+      "main": [[{ "node": "Parsear Métricas Gemini", "type": "main", "index": 0 }]]
+    },
+    "Parsear Métricas Gemini": {
+      "main": [[{ "node": "Gerar Script de Gráficos", "type": "main", "index": 0 }]]
+    },
+    "Gerar Script de Gráficos": {
+      "main": [[{ "node": "Gerar Gráficos", "type": "main", "index": 0 }]]
+    },
+    "Gerar Gráficos": {
+      "main": [[{ "node": "Resultado Final", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "versionId": "a1b2c3d4-ffff-4e5f-8a9b-000000000099",
+  "id": "hill-climbing-8rainhas-v1"
+}

@@ -1,80 +1,233 @@
 # Trabalho Prático - Inteligência Artificial: Problema das 8-Rainhas com Hill Climbing
 
-Este repositório contém a implementação do algoritmo **Hill Climbing (Subida de Encosta)** aplicado ao Problema das N-Rainhas (com N=8), além da estrutura e instruções necessárias para a orquestração via **n8n** e a análise posterior de dados quantitativos, cumprindo rigorosamente todas as etapas especificadas.
+Este repositório contém a implementação do algoritmo **Hill Climbing (Subida de Encosta)** aplicado ao Problema das N-Rainhas (com N=8), além da estrutura e instruções necessárias para a orquestração via **n8n** e a análise posterior de dados quantitativos.
+
+---
 
 ## 📁 Estrutura do Projeto
 
-Abaixo a estrutura completa e esperada de pastas do projeto (as pastas base já foram criadas):
-
 ```text
-/projeto-ia/
+Trabalho-1-Inteligencia-Artificial/
 │── codigo/
-│   └── hill_climbing.py       # Script principal com a lógica de IA (Hill Climbing + Restart)
+│   ├── hill_climbing.py          # Algoritmo principal (Hill Climbing + Random Restart)
+│   └── analisar_resultados.py    # Script de métricas e geração dos 4 gráficos
 │
 │── workflow/
-│   └── n8n_workflow.json      # Onde você deverá salvar a exportação do seu workflow n8n
+│   └── n8n_workflow.json         # Workflow completo importável no n8n
 │
-│── resultados/
-│   ├── execucoes.csv          # Tabela de dados brutos que será gerada pela automação
-│   ├── graficos.png           # (ou .jpg) Seus gráficos salvos a partir do Excel ou Matplotlib
-│   └── analise.xlsx           # Planilha auxiliar com tratamento dos dados (caso use Excel)
+│── resultados/                   # Pasta gerada automaticamente pelo pipeline
+│   ├── execucoes.csv             # Dados brutos das 30 execuções
+│   ├── metricas_gemini.json      # Análise de métricas gerada pelo Gemini
+│   ├── gerar_graficos.py         # Script Python gerado dinamicamente pelo n8n
+│   ├── grafico1_sucesso_falha.png
+│   ├── grafico2_iteracoes_linha.png
+│   ├── grafico3_histograma_tempo.png
+│   └── grafico4_boxplot_iteracoes.png
 │
 │── relatorio/
-│   └── relatorio_final.pdf    # A versão final do trabalho prático escrito
+│   └── relatorio_final.pdf       # Versão final do trabalho escrito
 │
-└── README.md                  # Este documento
+└── README.md
 ```
 
 ---
 
-## 🛠️ ETAPAS DA IMPLEMENTAÇÃO E EXECUÇÃO
+## 🚀 GUIA COMPLETO DE EXECUÇÃO — PASSO A PASSO
 
-### 1. Como Fazer Hill Climbing (Core Python)
-O script localizado em `codigo/hill_climbing.py` foi escrito de forma estritamente modular e já resolve o problema computacional abordado:
-- **Representação**: Utiliza um array unidimensional onde a posição indica a coluna e o valor indica a linha.
-- **Função Objetivo ($h$)**: Analisa os pares para garantir a não-colisão nas linhas e diagonais. A meta é $h=0$.
-- **Vizinhança e Variante**: Explora as 56 possibilidades (*Steepest Ascent*) e, em casos de travamento (Platô de 10 movimentos laterais ou Ótimo Local), realiza um reinício aleatório (*Random Restart*) com um limite de 20 reinícios por tentativa.
+### PRÉ-REQUISITOS
 
-**Execução via Linha de Comando:**
-Para testar, você pode abrir um terminal na raiz do projeto e rodar:
+Antes de começar, garanta que você tem instalado:
+
+| Ferramenta | Verificação |
+|---|---|
+| **Python 3.8+** | `python --version` |
+| **pip** | `pip --version` |
+| **n8n** (via Node.js) | `n8n --version` |
+| **Bibliotecas Python** | `pip install matplotlib pandas` |
+
+---
+
+### PASSO 1 — Testar o Script Python Localmente
+
+Abra o **Prompt de Comando** ou **PowerShell** na pasta do projeto e execute:
+
 ```bash
 python codigo/hill_climbing.py --num_execucoes 30 --max_iter 200 --variante restart
 ```
-Você também pode utilizar o argumento opcional `--seed <numero>` se quiser dados determinísticos. O algoritmo imprime puramente e exclusivamente um JSON válido com todos os dados calculados, para não quebrar a automação externa.
+
+✅ **Resultado esperado:** Um JSON com 30 objetos contendo as chaves:
+`id_execucao`, `estado_inicial`, `iterações`, `tempo_ms`, `estado_final`, `h_final`, `sucesso`, `reinicios`, `platô`, `ótimo_local`
+
+Se funcionar, o Python está pronto para o n8n.
 
 ---
 
-### 2. Como Integrar com n8n (Orquestração)
-O n8n fará o meio de campo rodando a automação de experimentos de forma industrial (Low-Code). O pipeline deve seguir o fluxo sugerido no planejamento:
+### PASSO 2 — Obter a Chave de API do Gemini
 
-1. **Manual Trigger**: O nó de início manual do processo.
-2. **Execute Command**: Crie este nó para rodar o script no terminal da sua máquina (onde o n8n está rodando localmente ou no Docker apontado para a máquina local):
-   `python /caminho/absoluto/do/projeto/codigo/hill_climbing.py --num_execucoes 15 --max_iter 200`
-3. **JSON (Item Lists) / Transform**: Como o retorno do Python é exclusivamente JSON, o n8n o transformará em arrays interativos automaticamente. O JSON conterá as exatas chaves solicitadas: `id_execucao`, `estado_inicial`, `iterações`, `tempo_ms`, `estado_final`, `h_final`, `sucesso`, `reinicios`, `platô`, `ótimo_local`.
+1. Acesse [Google AI Studio](https://aistudio.google.com/apikey)
+2. Clique em **"Create API Key"**
+3. Copie a chave gerada — ela será usada no Passo 5
 
 ---
 
-### 3. Como Gerar o CSV
-Existem dois caminhos principais para a geração do `execucoes.csv` em `resultados/`:
-- **Via n8n (Recomendado na especificação)**: Após receber o JSON gerado pelo Python, insira um nó **Spreadsheet File** configurado para a ação "Write to File" em formato CSV, apontando o caminho de destino para sua pasta `/resultados/execucoes.csv`.
-- **Via Google Sheets (Alternativa n8n)**: Outra forma muito prática é plugar um nó do **Google Sheets** no n8n que fará um "Append/Upsert" direto em uma planilha sua com os dados de execução. Em seguida, baixe-a como .xlsx para criar as tabelas dinâmicas.
+### PASSO 3 — Iniciar o n8n
+
+Abra o **Prompt de Comando** e execute:
+
+```bash
+n8n start
+```
+
+Aguarde aparecer a mensagem:
+```
+n8n ready on 0.0.0.0, port 5678
+```
+
+Em seguida, acesse no navegador: **http://localhost:5678**
+
+> **Como parar o n8n:** Volte ao Prompt de Comando onde o n8n está rodando e pressione **`Ctrl + C`**. Aguarde a mensagem de encerramento. O n8n para completamente e libera a porta 5678.
+>
+> Se o terminal já foi fechado e o n8n continua rodando em segundo plano, pare pelo **Gerenciador de Tarefas** (atalho `Ctrl + Shift + Esc`) → aba **Processos** → localize **Node.js** → clique com botão direito → **Finalizar Tarefa**. Ou via PowerShell:
+> ```powershell
+> # Encontrar e encerrar o processo Node.js do n8n
+> Get-Process -Name "node" | Stop-Process -Force
+> ```
 
 ---
 
-### 4. Como Fazer Gráficos (Análise Experimental)
-Com base nas 15 ou 30 execuções documentadas no seu CSV ou Sheets, calcule as seguintes métricas obrigatórias de tendência e dispersão: *média e desvio padrão das iterações, média e desvio padrão do tempo, taxa de sucesso, valor médio do h final*.
+### PASSO 4 — Importar o Workflow no n8n
 
-A partir desses dados organizados no Excel ou utilizando a biblioteca Python Matplotlib, você construirá os 4 gráficos sugeridos:
-1. **Gráfico de Barras**: Frequência simples comparando execuções com `sucesso = true` vs `sucesso = false`.
-2. **Gráfico de Linha**: A coluna `id_execucao` no eixo X e a quantidade de `iterações` daquela rodada no eixo Y.
-3. **Histograma**: Selecione a coluna `tempo_ms`, divida-os em "bins" (faixas) para ver a curva de distribuição do desempenho.
-4. **Boxplot**: Fundamental para a análise quantitativa; representará os quartis e possíveis *outliers* das `iterações` totais necessárias, sendo o melhor gráfico para mostrar a consistência do Random Restart.
+1. No n8n, clique em **"Workflows"** no menu lateral esquerdo
+2. Clique no botão **"Add workflow"** (canto superior direito)
+3. Clique nos **3 pontinhos** `⋮` no canto superior direito da tela
+4. Selecione **"Import from file"**
+5. Navegue até a pasta do projeto e selecione:
+   ```
+   workflow/n8n_workflow.json
+   ```
+6. O workflow será importado com os **9 nós já conectados**
 
 ---
 
-### 5. Como Escrever o Relatório (Resultados e Discussão)
-Utilize os dados estatísticos como suporte empírico para o seu texto. A estrutura sugerida para a discussão inclui:
-- **Desempenho**: Avalie se o Hill Climbing rodou rápido ou lento, referenciando o gráfico do Boxplot e o tempo médio.
-- **Problema principal e a Variante**: Explique conceitualmente por que o Hill Climbing simples falha em N-Rainhas e argumente por que o **Reinício Aleatório** e os mecanismos de escape para **Platôs/Ótimos locais** (contabilizados nas colunas do CSV) ajudaram. Relacione isso com a sua Taxa de Sucesso.
-- **As 5 Melhores Soluções**: Busque no seu arquivo `.csv` as linhas onde `sucesso == true`, ordene pelas de menor `tempo_ms` e pegue o `estado_final` delas. Mostre essas 5 combinações no relatório.
-- **Limitações e Melhorias Futuras**: Mencione outras formas de meta-heurísticas combinatórias que poderiam resolver o mesmo problema (Algoritmos Genéticos, Têmpera Simulada), comparando o que mudaria em relação ao seu Hill Climbing.
+### PASSO 5 — Configurar a Chave API do Gemini
+
+Após importar o workflow:
+
+1. Clique no nó **"Análise Gemini"** (5º nó laranja da sequência)
+2. Na aba **Parameters**, localize o campo **URL**
+3. Encontre o trecho `SUA_CHAVE_API_AQUI` e substitua pela sua chave real:
+
+```
+Antes: ...generateContent?key=SUA_CHAVE_API_AQUI
+Depois: ...generateContent?key=AIzaSy_SUA_CHAVE_REAL_AQUI
+```
+
+4. Clique em **"Save"** (ícone de disquete no topo)
+
+---
+
+### PASSO 6 — Executar o Workflow
+
+1. No topo da tela do workflow, clique em **"Execute Workflow"** (botão ▶️)
+2. Aguarde a execução. Você verá os nós acendendo em verde um a um
+3. Tempo estimado: **30–90 segundos** (dependendo da velocidade da API Gemini)
+
+**O que acontece em cada nó:**
+
+| Nó | Ação |
+|---|---|
+| 🟢 Iniciar Experimento | Dispara o pipeline manualmente |
+| ⚙️ Rodar Hill Climbing | Executa `hill_climbing.py` com 30 execuções |
+| 📦 Parsear JSON do Python | Converte a saída do terminal em 30 objetos n8n |
+| 💾 Salvar CSV | Grava `resultados/execucoes.csv` em disco |
+| 🤖 Análise Gemini | Envia os dados para o Gemini e recebe métricas + categorização |
+| 📊 Parsear Métricas Gemini | Extrai o JSON e salva `metricas_gemini.json` |
+| 🐍 Gerar Script de Gráficos | Cria o arquivo `gerar_graficos.py` dinamicamente com dados embutidos |
+| ▶️ Gerar Gráficos | Executa o script → gera os 4 arquivos `.png` |
+| ✅ Resultado Final | Exibe lista de todos os arquivos gerados |
+
+---
+
+### PASSO 7 — Verificar os Resultados
+
+Após a execução, abra a pasta `resultados/` do projeto. Você deve encontrar:
+
+```
+resultados/
+├── execucoes.csv                   ✅ Dados brutos das 30 execuções
+├── metricas_gemini.json            ✅ Análise completa do Gemini
+├── gerar_graficos.py               ✅ Script gerado automaticamente
+├── grafico1_sucesso_falha.png      ✅ Barras: Sucesso vs Falha
+├── grafico2_iteracoes_linha.png    ✅ Linha: Iterações por execução
+├── grafico3_histograma_tempo.png   ✅ Histograma: distribuição do tempo
+└── grafico4_boxplot_iteracoes.png  ✅ Boxplot: dispersão das iterações
+```
+
+---
+
+### PASSO 8 — (Opcional) Rodar a Análise Standalone
+
+Se quiser gerar os gráficos sem o n8n (precisa do `execucoes.csv` já gerado):
+
+```bash
+python codigo/analisar_resultados.py
+```
+
+Este script lê o CSV, calcula todas as métricas e salva os 4 gráficos diretamente.
+
+---
+
+## 🔧 SOLUÇÃO DE PROBLEMAS
+
+| Problema | Causa | Solução |
+|---|---|---|
+| `python: command not found` | Python não está no PATH | Reinstale o Python e marque "Add to PATH" |
+| `ModuleNotFoundError: matplotlib` | Biblioteca não instalada | `pip install matplotlib pandas` |
+| Nó "Rodar Hill Climbing" falha | Caminho incorreto | Verifique se o projeto está em `C:/Users/Hialagol/Documents/Meus-Projetos/Trabalho-1-Inteligencia-Artificial` |
+| Erro 400 no nó Gemini | Chave API inválida | Gere uma nova chave em [AI Studio](https://aistudio.google.com/apikey) |
+| Erro 404 no nó Gemini | Nome do modelo errado | O modelo configurado é `gemini-3-flash-preview` |
+| CSV vazio ou incorreto | JSON malformado do Python | Rode o script manualmente no terminal e verifique a saída |
+
+---
+
+## 📊 MÉTRICAS CALCULADAS
+
+### Obrigatórias
+| Métrica | Descrição |
+|---|---|
+| Média iterações | Média do número de iterações nas 30 execuções |
+| Desvio padrão iterações | Dispersão em torno da média de iterações |
+| Média tempo (ms) | Tempo médio de execução em milissegundos |
+| Desvio padrão tempo | Dispersão em torno do tempo médio |
+| Taxa de sucesso (%) | % de execuções que encontraram h=0 |
+| Taxa de falha (%) | % de execuções que não convergiram |
+| Valor médio h final | Média dos conflitos restantes ao fim |
+
+### Extras
+| Métrica | Descrição |
+|---|---|
+| Máximo iterações | Maior número de iterações em uma execução |
+| Mínimo iterações | Menor número de iterações em uma execução |
+| Total execuções | Número total de execuções (30) |
+| Média de reinícios | Média de Random Restarts por execução |
+| Quantidade de platôs | Total de execuções que travaram em platô |
+
+---
+
+## 🧠 SOBRE O ALGORITMO
+
+- **Representação**: Array `[c0..c7]` onde índice = coluna e valor = linha (0–7)
+- **Função Objetivo h**: Conta pares de rainhas em conflito (linha ou diagonal). Meta: `h = 0`
+- **Vizinhança**: Steepest Ascent — explora todos os 56 vizinhos possíveis por iteração
+- **Variante usada**: Random Restart — ao travar em platô (10 mov. laterais) ou ótimo local, reinicia aleatoriamente (até 20 reinícios por execução)
+
+---
+
+## 🔗 TECNOLOGIAS UTILIZADAS
+
+| Tecnologia | Uso |
+|---|---|
+| Python 3 | Algoritmo Hill Climbing + geração de gráficos |
+| n8n (Node.js) | Orquestração do pipeline completo |
+| Google Gemini `gemini-3-flash-preview` | Análise de métricas e categorização das execuções |
+| Matplotlib + Pandas | Visualização dos dados e manipulação do CSV |
