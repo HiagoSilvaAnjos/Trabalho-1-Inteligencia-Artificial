@@ -1,1 +1,0 @@
-Objetivo desta pasta: Centralizar os dados brutos e os recursos visuais das análises experimentais. Aqui serão armazenados a planilha de logs das execuções (CSV com iterações, tempo, sucessos) gerada pelo n8n, a planilha de tratamento dos dados e os gráficos exportados para a apresentação dos resultados.
