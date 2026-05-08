@@ -15,7 +15,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=AIzaSyAYAqHu_1zSYOI-GE94obV40UKDvPqQNAY",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=AIzaSyAlAyssadxtstldRmreJKcjUbjM5GHfuYo",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -105,7 +105,7 @@
         16
       ],
       "id": "cf40bcf4-b3ce-42ef-9c5c-21e2c098b511",
-      "name": "HTTP Request"
+      "name": "Salvar Métricas Gemini"
     }
   ],
   "pinData": {},
@@ -114,7 +114,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Salvar Métricas Gemini",
             "type": "main",
             "index": 0
           }
@@ -154,7 +154,7 @@
         ]
       ]
     },
-    "HTTP Request": {
+    "Salvar Métricas Gemini": {
       "main": [
         [
           {
@@ -171,7 +171,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "774099b6-775f-40a7-88c3-aee02ab424c7",
+  "versionId": "21ded054-05d5-468d-973c-74875a418dba",
   "meta": {
     "instanceId": "91140c6e9aa6b1ea89eb368e4a8070ca96c95d1ceb8978a109abb10f727e8acf"
   },
