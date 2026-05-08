@@ -8,7 +8,7 @@ Este projeto implementa uma solução completa, robusta e automatizada para o pr
 
 O sistema foi arquitetado em um formato de **Microsserviços**.
 
-O n8n atua como o **Cérebro Orquestrador**, enquanto uma API Python atua como o **Motor de Processamento**, possuindo acesso total ao sistema de arquivos da máquina.
+O n8n opera como o controlador central da integração, enquanto a API Python atua como a camada de processamento, detendo permissões de acesso integral ao sistema de arquivos local.
 
 ### O Pipeline de Dados:
 1. **Execução:** O n8n faz com que a API rode o Hill Climbing 30 vezes. A API gera os dados, salva o histórico bruto (`.csv`) no disco e devolve um JSON encapsulado.
@@ -30,25 +30,25 @@ Trabalho-1-Inteligencia-Artificial/
 ├── README.md                    # Este arquivo de documentação geral
 │
 ├── codigo/                      # Scripts Lógicos
-│   ├── hill_climbing.py         # Algoritmo Hill Climbing (Resolve o tabuleiro)
-│   ├── analisar_resultados.py   # Motor de geração de Tabelas e Gráficos (Matplotlib)
-│   └── gerar_relatorio_excel.py # Motor de geração de Planilha Excel (Pandas/Openpyxl)
+│   ├── hill_climbing.py         # Algoritmo Hill Climbing
+│   ├── analisar_resultados.py   # Motor de geração de Tabelas e Gráficos 
+│   └── gerar_relatorio_excel.py # Motor de geração de Planilha Excel 
 │
 ├── resultados/                  # Diretório de Saída (Gerado dinamicamente)
 │   ├── execucoes.csv                   # Histórico de cada uma das 30 execuções
 │   ├── metricas_gemini.json            # Análise estruturada do Google Gemini
-│   ├── relatorio_execucoes.xlsx        # Planilha Excel formatada com cores e larguras dinâmicas
-│   ├── grafico1_sucesso_falha.png      # Gráfico de Barras: Sucesso vs Falha
-│   ├── grafico2_iteracoes_linha.png    # Gráfico de Linha: Evolução das iterações
-│   ├── grafico3_histograma_tempo.png   # Histograma: Distribuição do tempo
-│   ├── grafico4_boxplot_iteracoes.png  # Boxplot: Consistência do algoritmo
+│   ├── relatorio_execucoes.xlsx        # Excel formatada com cores e larguras dinâmicas
+│   ├── grafico1_sucesso_falha.png      # Sucesso vs Falha
+│   ├── grafico2_iteracoes_linha.png    # Evolução das iterações
+│   ├── grafico3_histograma_tempo.png   # Distribuição do tempo
+│   ├── grafico4_boxplot_iteracoes.png  # Consistência do algoritmo
 │   ├── novo_grafico_dispersao.png      # Dispersão: Iterações vs. Tempo
-│   ├── novo_grafico_pizza_parada.png   # Pizza: Distribuição de Condições de Parada
-│   ├── novo_grafico_barras_reinicios.png # Barras: Frequência de Reinícios
-│   ├── novo_grafico_heatmap_ocupacao.png # Mapa de Calor: Ocupação do Tabuleiro
-│   ├── nova_tabela_top5_eficientes.png # Tabela: Top 5 Soluções Mais Eficientes
-│   ├── nova_tabela_piores_gafes.png    # Tabela: Piores Gafes Computacionais
-│   └── nova_tabela_resumo_categorico.png # Tabela: Resumo Categórico
+│   ├── novo_grafico_pizza_parada.png   # Distribuição de Condições de Parada
+│   ├── novo_grafico_barras_reinicios.png # Frequência de Reinícios
+│   ├── novo_grafico_heatmap_ocupacao.png # Ocupação do Tabuleiro
+│   ├── nova_tabela_top5_eficientes.png # Top 5 Soluções Mais Eficientes
+│   ├── nova_tabela_piores_gafes.png    # Piores Gafes Computacionais
+│   └── nova_tabela_resumo_categorico.png # Resumo Categórico
 │
 └── workflow/                    # Arquivos de exportação
     └── Hill Climbing_n8n_workflow.json # Fluxo do n8n
@@ -74,17 +74,26 @@ Abra um terminal na raiz do projeto e instale todas as dependências exigidas pe
 pip install flask pandas matplotlib seaborn openpyxl
 ```
 
-### Passo 2: Ligar a API
+### Passo 2: Iniciar a API
 No mesmo terminal, inicie o servidor da ponte Python do projeto:
 ```bash
 python api_projeto.py
 ```
 > **Atenção:** Mantenha este terminal aberto! Ele escutará as requisições na porta `5000` (ex: `http://127.0.0.1:5000`). Sem isso, o n8n não conseguirá processar.
 
-### Passo 3: Importação no n8n
-1. Abra o painel do seu n8n no navegador (`http://localhost:5678`).
-2. Clique em **Add Workflow** > **Import from File**.
-3. Selecione o arquivo `Hill Climbing_n8n_workflow.json` que está na pasta `workflow/`.
+### Passo 3: Iniciar n8n
+Abra um novo terminal e digite o comando:
+```bash
+n8n start
+```
+> **Atenção:** Esse comando irá funcionar se o n8n estiver instalado globalmente. Caso contrário, instale-o com o comando `npm install -g n8n`.
+
+### Passo 4: Importação no n8n
+
+1. Feito o passo acima, irá abrir uma página web com o n8n.
+2. Faça o cadastro ou login na plataforma. Se já tiver uma conta, ignore essa etapa.
+3. Clique em **Add Workflow** > **Import from File**.
+4. Selecione o arquivo `Hill Climbing_n8n_workflow.json` que está na pasta `workflow/`.
 
 ### Passo 4: Autenticação da IA
 1. No fluxo importado, clique no nó **"Análise Gemini"**.
@@ -119,8 +128,8 @@ python api_projeto.py
 
 4. **Salvar Métricas Gemini (`HTTP Request`)**:
    - Dispara um `POST` para `http://127.0.0.1:5000/salvar-metricas`.
-   - Envia a resposta bruta do Gemini (que contém vários cabeçalhos e tokens) para a nossa API. O Python filtra o conteúdo, certifica-se de que é um JSON válido e salva na pasta `resultados/metricas_gemini.json`.
+   - Envia a resposta bruta do Gemini (que contém vários cabeçalhos e tokens) para a API do projeto. O Python filtra o conteúdo, certifica-se de que é um JSON válido e salva na pasta `resultados/metricas_gemini.json`.
 
 5. **Gerar Gráficos e Planilha (`HTTP Request`)**:
    - Dispara um `POST` para `http://127.0.0.1:5000/gerar-graficos`.
-   - A API chama o script `analisar_resultados.py` e, logo em seguida, o script `gerar_relatorio_excel.py`. Esses scripts leem autonomamente o `execucoes.csv`, plotam diversos gráficos e tabelas com fundo branco em PNG via Matplotlib, e geram um rico relatório Excel `.xlsx` com formatação condicional (verde para sucessos, vermelho para falhas).
+   - A API chama o script `analisar_resultados.py` e, logo em seguida, o script `gerar_relatorio_excel.py`. Esses scripts leem autonomamente o `execucoes.csv`, plotam gráficos e tabelas com fundo branco em PNG via Matplotlib, e geram um relatório Excel `.xlsx` com formatação condicional.
