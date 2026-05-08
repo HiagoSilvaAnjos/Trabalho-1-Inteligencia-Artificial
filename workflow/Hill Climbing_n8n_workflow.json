@@ -1,0 +1,180 @@
+{
+  "name": "Hill Climbing - 8 Rainhas (Pipeline Completo)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "17f96120-619b-4124-94c2-4b0f69abb7af",
+      "name": "Iniciar Experimento",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        320,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=AIzaSyAYAqHu_1zSYOI-GE94obV40UKDvPqQNAY",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "=json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={{\n  JSON.stringify({\n    \"contents\": [\n      {\n        \"parts\": [\n          {\n            \"text\": \"Você é um analista especialista em algoritmos de IA. Analise os dados de 30 execuções do Hill Climbing para o Problema das 8-Rainhas e retorne SOMENTE um JSON válido (sem markdown, sem texto extra) com as seguintes chaves:\\n\\nMÉTRICAS EXIGIDAS:\\n- media_iteracoes (número)\\n- desvio_padrao_iteracoes (número)\\n- media_tempo_ms (número)\\n- desvio_padrao_tempo_ms (número)\\n- taxa_sucesso_pct (percentual 0-100)\\n- valor_medio_h_final (número)\\n- max_iteracoes (inteiro)\\n- min_iteracoes (inteiro)\\n- media_reinicios (número)\\n- quantidade_platos (inteiro)\\n\\nTOP 5 SOLUÇÕES:\\n- as_cinco_melhores_solucoes_distintas (array com os 5 objetos contendo o estado_inicial, estado_final, h_final e tempo_ms)\\n\\nCATEGORIZAÇÃO (array \\\"categorizacao\\\" com 30 objetos, um por execução):\\n- id_execucao (inteiro)\\n- categoria: 'Sucesso Rápido' se sucesso=true e iterações < média, 'Sucesso Lento' se sucesso=true e iterações >= média, 'Falha por Ótimo Local' se sucesso=false e ótimo_local=true, 'Falha por Platô' se sucesso=false e platô=true, 'Falha por Limite' caso contrário\\n- destaque: observação relevante sobre aquela execução\\n\\nDados das execuções (JSON):\\n\" + JSON.stringify($json.execucoes)\n          }\n        ]\n      }\n    ],\n    \"generationConfig\": {\n      \"responseMimeType\": \"application/json\",\n      \"temperature\": 0.1\n    }\n  })\n}}\n",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "9258b0e8-7b2d-45dd-9cac-a1bc969ca77a",
+      "name": "Análise Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1024,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.stdout || '';\nconst success = output.includes('CONCLUIDO');\n\nreturn [{\n  json: {\n    pipeline_status: success ? 'SUCESSO - Pipeline completo!' : 'VERIFIQUE O LOG (stdout abaixo)',\n    arquivos_gerados: [\n      'resultados/execucoes.csv',\n      'resultados/metricas_gemini.json',\n      'resultados/gerar_graficos.py',\n      'resultados/grafico1_sucesso_falha.png',\n      'resultados/grafico2_iteracoes_linha.png',\n      'resultados/grafico3_histograma_tempo.png',\n      'resultados/grafico4_boxplot_iteracoes.png'\n    ],\n    log_graficos: output.trim()\n  }\n}];"
+      },
+      "id": "29103513-9722-4032-8297-db0eb1b0dc72",
+      "name": "Resultado Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5000/executar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        16
+      ],
+      "id": "2f9f51c4-0b9e-4d94-90b0-a9c87bf7536b",
+      "name": "Hill Climbing"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5000/gerar-graficos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1792,
+        16
+      ],
+      "id": "77a4c698-6f29-430f-a9bc-db5989eb3278",
+      "name": "Gerar Gráficos"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5000/salvar-metricas",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1408,
+        16
+      ],
+      "id": "cf40bcf4-b3ce-42ef-9c5c-21e2c098b511",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Análise Gemini": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iniciar Experimento": {
+      "main": [
+        [
+          {
+            "node": "Hill Climbing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hill Climbing": {
+      "main": [
+        [
+          {
+            "node": "Análise Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Gráficos": {
+      "main": [
+        [
+          {
+            "node": "Resultado Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Gerar Gráficos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "774099b6-775f-40a7-88c3-aee02ab424c7",
+  "meta": {
+    "instanceId": "91140c6e9aa6b1ea89eb368e4a8070ca96c95d1ceb8978a109abb10f727e8acf"
+  },
+  "id": "PkMH7TrEBr35OlEP",
+  "tags": []
+}

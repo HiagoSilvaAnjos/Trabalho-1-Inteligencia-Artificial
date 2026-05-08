@@ -155,4 +155,82 @@ plt.savefig(os.path.join(OUT_DIR, "grafico4_boxplot_iteracoes.png"), dpi=150, fa
 plt.close()
 print("[OK] grafico4_boxplot_iteracoes.png salvo.")
 
-print("\n[CONCLUÍDO] Todos os gráficos foram salvos em:", OUT_DIR)
+# ── Tabela 1: Resumo das Métricas ─────────────────────────────────────────────
+fig, ax = plt.subplots(figsize=(8, 4))
+fig.patch.set_facecolor(PALETTE["bg"])
+ax.axis('tight')
+ax.axis('off')
+
+tabela1_dados = [
+    ["Métrica", "Valor"],
+    ["Taxa de Sucesso", f'{metricas["taxa_sucesso_pct"]}%'],
+    ["Taxa de Falha", f'{metricas["taxa_falha_pct"]}%'],
+    ["Média de Iterações", f'{metricas["media_iteracoes"]} ± {metricas["desvio_padrao_iteracoes"]}'],
+    ["Tempo Médio (ms)", f'{metricas["media_tempo_ms"]} ± {metricas["desvio_padrao_tempo_ms"]}'],
+    ["Média H Final", f'{metricas["media_h_final"]}'],
+    ["Reinícios Médios", f'{metricas["media_reinicios"]}'],
+    ["Total de Platôs", f'{metricas["quantidade_platos"]}']
+]
+
+table1 = ax.table(cellText=tabela1_dados, colLabels=None, cellLoc='center', loc='center')
+table1.auto_set_font_size(False)
+table1.set_fontsize(12)
+table1.scale(1, 2)
+
+for (row, col), cell in table1.get_celld().items():
+    cell.set_edgecolor(PALETTE["grid"])
+    if row == 0:
+        cell.set_text_props(weight='bold', color=PALETTE["bg"])
+        cell.set_facecolor(PALETTE["text"])
+    else:
+        cell.set_text_props(color=PALETTE["text"])
+        cell.set_facecolor(PALETTE["bg"])
+
+plt.title("Resumo das Métricas", color=PALETTE["text"], fontsize=14, fontweight="bold", pad=20)
+plt.tight_layout()
+plt.savefig(os.path.join(OUT_DIR, "tabela1_resumo.png"), dpi=150, facecolor=PALETTE["bg"], bbox_inches='tight')
+plt.close()
+print("[OK] tabela1_resumo.png salvo.")
+
+# ── Tabela 2: 5 Melhores Soluções Distintas ──────────────────────────────────
+estado_col_list = [c for c in df.columns if "estado_final" in c.lower()]
+estado_col_name = estado_col_list[0] if estado_col_list else "estado_final"
+
+if estado_col_name in df.columns:
+    melhores_df = df.sort_values(by=h_col).drop_duplicates(subset=[estado_col_name]).head(5)
+    
+    fig, ax = plt.subplots(figsize=(10, 3))
+    fig.patch.set_facecolor(PALETTE["bg"])
+    ax.axis('tight')
+    ax.axis('off')
+    
+    tabela2_dados = [["Rank", "ID Exec", "Conflitos (h)", "Estado Final (Solução)"]]
+    for idx, (_, row) in enumerate(melhores_df.iterrows(), 1):
+        tabela2_dados.append([
+            f"#{idx}",
+            str(row[id_col]),
+            str(row[h_col]),
+            str(row[estado_col_name])
+        ])
+    
+    table2 = ax.table(cellText=tabela2_dados, colLabels=None, cellLoc='center', loc='center')
+    table2.auto_set_font_size(False)
+    table2.set_fontsize(11)
+    table2.scale(1, 2)
+    
+    for (row, col), cell in table2.get_celld().items():
+        cell.set_edgecolor(PALETTE["grid"])
+        if row == 0:
+            cell.set_text_props(weight='bold', color=PALETTE["bg"])
+            cell.set_facecolor(PALETTE["sucesso"])
+        else:
+            cell.set_text_props(color=PALETTE["text"])
+            cell.set_facecolor(PALETTE["bg"])
+    
+    plt.title("Top 5 Melhores Soluções Distintas", color=PALETTE["text"], fontsize=14, fontweight="bold", pad=20)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUT_DIR, "tabela2_melhores_solucoes.png"), dpi=150, facecolor=PALETTE["bg"], bbox_inches='tight')
+    plt.close()
+    print("[OK] tabela2_melhores_solucoes.png salvo.")
+
+print("\n[CONCLUÍDO] Todos os gráficos e tabelas foram salvos em:", OUT_DIR)
