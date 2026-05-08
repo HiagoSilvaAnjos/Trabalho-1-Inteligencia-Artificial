@@ -11,7 +11,7 @@ O sistema foi arquitetado em um formato de **Microsserviços**.
 O n8n atua como o **Cérebro Orquestrador**, enquanto uma API Python atua como o **Motor de Processamento**, possuindo acesso total ao sistema de arquivos da máquina.
 
 ### O Pipeline de Dados:
-1. **Execução:** O n8n ordena que a API rode o Hill Climbing 30 vezes. A API gera os dados, salva o histórico bruto (`.csv`) no disco e devolve um JSON encapsulado.
+1. **Execução:** O n8n faz com que a API rode o Hill Climbing 30 vezes. A API gera os dados, salva o histórico bruto (`.csv`) no disco e devolve um JSON encapsulado.
 
 2. **Análise IA:** O n8n pega esse JSON e envia diretamente para a API do Google Gemini. O Gemini analisa os tempos de execução, iterações e taxas de sucesso, extraindo as 5 melhores soluções e criando uma categorização textual detalhada.
 
