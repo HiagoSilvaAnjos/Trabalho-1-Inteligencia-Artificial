@@ -39,11 +39,20 @@ def executar_algoritmo():
 def gerar_graficos():
     # Comando para rodar o script de análise e gráficos
     script_path = os.path.join(BASE_DIR, 'codigo', 'analisar_resultados.py')
+    script_excel_path = os.path.join(BASE_DIR, 'codigo', 'gerar_relatorio_excel.py')
     try:
         resultado = subprocess.check_output(['python', script_path], text=True)
+        
+        # Executa também a geração do Excel
+        try:
+            resultado_excel = subprocess.check_output(['python', script_excel_path], text=True)
+            resultado += "\n" + resultado_excel
+        except Exception as e_excel:
+            resultado += f"\nErro ao gerar Excel: {str(e_excel)}"
+
         return jsonify({
             "status": "sucesso",
-            "mensagem": "Gráficos gerados na pasta resultados/",
+            "mensagem": "Gráficos e relatório Excel gerados na pasta resultados/",
             "log": resultado
         })
     except Exception as e:

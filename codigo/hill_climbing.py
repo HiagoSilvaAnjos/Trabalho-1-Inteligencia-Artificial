@@ -37,7 +37,7 @@ def obter_melhor_vizinho(estado):
     # Retorna aleatoriamente um dos melhores vizinhos para evitar viés direcional
     return random.choice(melhores_vizinhos), menor_h
 
-def executar_hill_climbing(id_execucao, max_iter, variante="restart"):
+def executar_hill_climbing(id_execucao, max_iter, variante="steepest"):
     n = 8
     # Estado: array de 8 posições onde índice = coluna, valor = linha (0-7)
     estado_inicial = [random.randint(0, n - 1) for _ in range(n)]
@@ -116,7 +116,7 @@ def main():
     parser = argparse.ArgumentParser(description="Algoritmo Hill Climbing para o Problema das 8-Rainhas")
     parser.add_argument("--num_execucoes", type=int, default=1, help="Número de execuções do algoritmo")
     parser.add_argument("--max_iter", type=int, default=200, help="Número máximo de iterações permitidas por execução")
-    parser.add_argument("--variante", type=str, default="restart", help="Variante do algoritmo (ex: restart)")
+    parser.add_argument("--variante", type=str, default="steepest", help="Variante do algoritmo (ex: steepest, restart)")
     parser.add_argument("--seed", type=int, default=None, help="Semente para o gerador de números aleatórios")
     
     args = parser.parse_args()
